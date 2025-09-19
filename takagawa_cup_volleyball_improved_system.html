@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タカガワカップ小学生バレーボール大会 - 改良版運営システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+         {
+            body { font-size: 12px; }
+            .no-print { display: none !important; }
+        }
+        .tournament-bracket {
+            font-size: 0.8rem;
+        }
+        .match-cell {
+            min-height: 40px;
+            border: 1px solid #e5e7eb;
+        }
+        .referee-indicator {
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+        }
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- ヘッダー -->
+    <header class="bg-blue-600 text-white p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold mb-2 md:mb-0">
+                <i class="fas fa-volleyball-ball mr-2"></i>
+                タカガワカップ小学生バレーボール大会
+            </h1>
+            <div class="flex flex-wrap gap-2">
+                <button id="adminLoginBtn" class="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded text-sm no-print">
+                    <i class="fas fa-key mr-1"></i>管理者ログイン
+                </button>
+                <button id="viewModeBtn" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-sm">
+                    <i class="fas fa-eye mr-1"></i>閲覧モード
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- パスワード入力モーダル -->
+    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden no-print">
+        <div class="flex items-center justify-center h-full">
+            <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+                <h3 class="text-lg font-bold mb-4">管理者ログイン</h3>
+                <input type="password" id="passwordInput" placeholder="パスワードを入力" 
+                       class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+                <div class="flex justify-end gap-2">
+                    <button id="cancelPassword" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                        キャンセル
+                    </button>
+                    <button id="submitPassword" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        ログイン
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <main class="container mx-auto p-4">
+        <!-- ナビゲーションタブ -->
+        <div class="bg-white rounded-lg shadow-md mb-6 no-print" id="navigationTabs">
+            <div class="flex flex-wrap border-b">
+                <button class="tab-button px-4 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600" data-tab="overview">
+                    <i class="fas fa-home mr-1"></i>概要
+                </button>
+                <button class="tab-button px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="teams">
+                    <i class="fas fa-users mr-1"></i>チーム管理
+                </button>
+                <button class="tab-button px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="preliminary">
+                    <i class="fas fa-list mr-1"></i>予選リーグ
+                </button>
+                <button class="tab-button px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="final">
+                    <i class="fas fa-trophy mr-1"></i>決勝トーナメント
+                </button>
+                <button class="tab-button px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="b-grade">
+                    <i class="fas fa-medal mr-1"></i>B級トーナメント
+                </button>
+            </div>
+        </div>
+
+        <!-- 概要タブ -->
+        <div id="overviewTab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center">
+                        <i class="fas fa-users text-3xl text-blue-500 mr-4"></i>
+                        <div>
+                            <h3 class="text-lg font-bold">参加チーム数</h3>
+                            <p class="text-2xl font-bold text-blue-600" id="totalTeams">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center">
+                        <i class="fas fa-futbol text-3xl text-green-500 mr-4"></i>
+                        <div>
+                            <h3 class="text-lg font-bold">予選試合数</h3>
+                            <p class="text-2xl font-bold text-green-600" id="preliminaryMatches">50</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center">
+                        <i class="fas fa-trophy text-3xl text-yellow-500 mr-4"></i>
+                        <div>
+                            <h3 class="text-lg font-bold">進出チーム数</h3>
+                            <p class="text-2xl font-bold text-yellow-600">16</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 大会スケジュール概要 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold mb-4"><i class="fas fa-calendar mr-2"></i>大会概要</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-bold mb-2">予選リーグ</h3>
+                        <ul class="text-sm space-y-1">
+                            <li>• 5リーグ（A～E）× 5チーム = 25チーム</li>
+                            <li>• 各試合：1セット21点先取（デュースあり）</li>
+                            <li>• 順位：セット率 → 得点率</li>
+                            <li>• 進出：各リーグ上位3チーム + 4位最上位1チーム</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-bold mb-2">決勝トーナメント</h3>
+                        <ul class="text-sm space-y-1">
+                            <li>• 16チームトーナメント</li>
+                            <li>• 抽選による組み合わせ</li>
+                            <li>• 管理者による試合順序設定可能</li>
+                        </ul>
+                        <h3 class="font-bold mb-2 mt-4">B級トーナメント</h3>
+                        <ul class="text-sm space-y-1">
+                            <li>• 9チームトーナメント</li>
+                            <li>• 抽選による組み合わせ</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- チーム管理タブ -->
+        <div id="teamsTab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold mb-2 md:mb-0">
+                        <i class="fas fa-users mr-2"></i>チーム管理
+                    </h2>
+                    <button id="addTeamBtn" class="admin-only bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm hidden no-print">
+                        <i class="fas fa-plus mr-1"></i>チーム追加
+                    </button>
+                </div>
+                
+                <!-- チーム登録フォーム -->
+                <div id="teamForm" class="admin-only bg-gray-50 p-4 rounded mb-4 hidden no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="teamName" placeholder="チーム名" 
+                               class="border border-gray-300 rounded px-3 py-2">
+                        <select id="teamLeague" class="border border-gray-300 rounded px-3 py-2">
+                            <option value="">リーグ選択</option>
+                            <option value="A">Aリーグ</option>
+                            <option value="B">Bリーグ</option>
+                            <option value="C">Cリーグ</option>
+                            <option value="D">Dリーグ</option>
+                            <option value="E">Eリーグ</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button id="saveTeam" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                            <i class="fas fa-save mr-1"></i>保存
+                        </button>
+                        <button id="cancelTeam" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">
+                            キャンセル
+                        </button>
+                    </div>
+                </div>
+
+                <!-- チームリスト -->
+                <div class="schedule-grid" id="teamsList">
+                    <!-- チームがここに表示される -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 予選リーグタブ -->
+        <div id="preliminaryTab" class="tab-content hidden">
+            <div class="space-y-6">
+                <!-- 予選リーグ制御パネル -->
+                <div class="bg-white rounded-lg shadow-md p-6 admin-only hidden no-print">
+                    <h3 class="text-lg font-bold mb-4">予選リーグ管理</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="generateSchedule" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                            <i class="fas fa-calendar-alt mr-1"></i>試合順序を最適化
+                        </button>
+                        <button id="resetMatches" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm">
+                            <i class="fas fa-undo mr-1"></i>試合結果リセット
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 予選リーグ表示 -->
+                <div id="preliminaryLeagues">
+                    <!-- 各リーグがここに表示される -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 決勝トーナメントタブ -->
+        <div id="finalTab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">
+                        <i class="fas fa-trophy mr-2"></i>決勝トーナメント
+                    </h2>
+                    <div class="admin-only flex gap-2 hidden no-print">
+                        <button id="setupFinalTournament" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm">
+                            <i class="fas fa-random mr-1"></i>抽選結果入力
+                        </button>
+                        <button id="manageFinalOrder" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                            <i class="fas fa-sort mr-1"></i>試合順序管理
+                        </button>
+                    </div>
+                </div>
+                <div id="finalTournamentBracket" class="tournament-bracket">
+                    <!-- トーナメント表がここに表示される -->
+                </div>
+            </div>
+        </div>
+
+        <!-- B級トーナメントタブ -->
+        <div id="b-gradeTab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">
+                        <i class="fas fa-medal mr-2"></i>B級トーナメント
+                    </h2>
+                    <div class="admin-only flex gap-2 hidden no-print">
+                        <button id="setupBGradeTournament" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm">
+                            <i class="fas fa-random mr-1"></i>抽選結果入力
+                        </button>
+                        <button id="manageBGradeOrder" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                            <i class="fas fa-sort mr-1"></i>試合順序管理
+                        </button>
+                    </div>
+                </div>
+                <div id="bGradeTournamentBracket" class="tournament-bracket">
+                    <!-- B級トーナメント表がここに表示される -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 試合結果入力モーダル -->
+    <div id="matchResultModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden no-print">
+        <div class="flex items-center justify-center h-full p-4">
+            <div class="bg-white p-6 rounded-lg max-w-md w-full">
+                <h3 class="text-lg font-bold mb-4">試合結果入力</h3>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span id="team1Name" class="font-medium"></span>
+                        <span class="text-gray-500">vs</span>
+                        <span id="team2Name" class="font-medium"></span>
+                    </div>
+                    <div class="flex gap-4 items-center justify-center">
+                        <div class="text-center">
+                            <label class="block text-sm mb-1" id="team1Label"></label>
+                            <input type="number" id="team1Score" min="0" max="50" 
+                                   class="w-20 border border-gray-300 rounded px-2 py-1 text-center">
+                        </div>
+                        <div class="text-center">
+                            <label class="block text-sm mb-1" id="team2Label"></label>
+                            <input type="number" id="team2Score" min="0" max="50" 
+                                   class="w-20 border border-gray-300 rounded px-2 py-1 text-center">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button id="cancelMatch" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                        キャンセル
+                    </button>
+                    <button id="saveMatch" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        保存
+                    </button>
+                    <button id="deleteMatch" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                        削除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- トーナメント設定モーダル -->
+    <div id="tournamentSetupModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden no-print">
+        <div class="flex items-center justify-center h-full p-4">
+            <div class="bg-white p-6 rounded-lg max-w-2xl w-full max-h-full overflow-y-auto">
+                <h3 class="text-lg font-bold mb-4" id="tournamentSetupTitle"></h3>
+                <div id="tournamentSetupContent">
+                    <!-- 動的コンテンツ -->
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button id="cancelTournamentSetup" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                        キャンセル
+                    </button>
+                    <button id="saveTournamentSetup" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let isAdmin = false;
+        let currentEditingMatch = null;
+        let teams = [];
+        let matches = [];
+        let tournaments = { final: [], bGrade: [] };
+
+        // データ管理
+        const DATA_VERSION = '2.0';
+        
+        function saveData() {
+            const data = {
+                version: DATA_VERSION,
+                teams: teams,
+                matches: matches,
+                tournaments: tournaments,
+                lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('takagawaCupData', JSON.stringify(data));
+        }
+
+        function loadData() {
+            const savedData = localStorage.getItem('takagawaCupData');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    if (data.version === DATA_VERSION) {
+                        teams = data.teams || [];
+                        matches = data.matches || [];
+                        tournaments = data.tournaments || { final: [], bGrade: [] };
+                    }
+                } catch (e) {
+                    console.error('データ読み込みエラー:', e);
+                }
+            }
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            initializeEventListeners();
+            updateUI();
+            showTab('overview');
+        });
+
+        // イベントリスナー設定
+        function initializeEventListeners() {
+            // ログイン関連
+            document.getElementById('adminLoginBtn').addEventListener('click', showPasswordModal);
+            document.getElementById('viewModeBtn').addEventListener('click', () => setAdminMode(false));
+            document.getElementById('cancelPassword').addEventListener('click', hidePasswordModal);
+            document.getElementById('submitPassword').addEventListener('click', checkPassword);
+            document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') checkPassword();
+            });
+
+            // タブ切り替え
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    showTab(button.getAttribute('data-tab'));
+                });
+            });
+
+            // チーム管理
+            document.getElementById('addTeamBtn').addEventListener('click', showTeamForm);
+            document.getElementById('saveTeam').addEventListener('click', saveTeam);
+            document.getElementById('cancelTeam').addEventListener('click', hideTeamForm);
+
+            // 予選リーグ
+            document.getElementById('generateSchedule').addEventListener('click', generateOptimizedSchedule);
+            document.getElementById('resetMatches').addEventListener('click', resetAllMatches);
+
+            // トーナメント
+            document.getElementById('setupFinalTournament').addEventListener('click', () => setupTournament('final'));
+            document.getElementById('manageFinalOrder').addEventListener('click', () => manageTournamentOrder('final'));
+            document.getElementById('setupBGradeTournament').addEventListener('click', () => setupTournament('bGrade'));
+            document.getElementById('manageBGradeOrder').addEventListener('click', () => manageTournamentOrder('bGrade'));
+
+            // モーダル関連
+            document.getElementById('cancelMatch').addEventListener('click', hideMatchModal);
+            document.getElementById('saveMatch').addEventListener('click', saveMatchResult);
+            document.getElementById('deleteMatch').addEventListener('click', deleteMatchResult);
+            document.getElementById('cancelTournamentSetup').addEventListener('click', hideTournamentSetupModal);
+            document.getElementById('saveTournamentSetup').addEventListener('click', saveTournamentSetup);
+        }
+
+        // パスワード管理
+        function showPasswordModal() {
+            document.getElementById('passwordModal').classList.remove('hidden');
+            document.getElementById('passwordInput').focus();
+        }
+
+        function hidePasswordModal() {
+            document.getElementById('passwordModal').classList.add('hidden');
+            document.getElementById('passwordInput').value = '';
+        }
+
+        function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            if (password === 'admin2024') {
+                setAdminMode(true);
+                hidePasswordModal();
+            } else {
+                alert('パスワードが正しくありません');
+            }
+        }
+
+        function setAdminMode(admin) {
+            isAdmin = admin;
+            const adminElements = document.querySelectorAll('.admin-only');
+            adminElements.forEach(element => {
+                if (admin) {
+                    element.classList.remove('hidden');
+                } else {
+                    element.classList.add('hidden');
+                }
+            });
+            
+            const loginBtn = document.getElementById('adminLoginBtn');
+            const viewBtn = document.getElementById('viewModeBtn');
+            
+            if (admin) {
+                loginBtn.textContent = '管理者モード';
+                loginBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                loginBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                viewBtn.classList.remove('hidden');
+            } else {
+                loginBtn.innerHTML = '<i class="fas fa-key mr-1"></i>管理者ログイン';
+                loginBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                loginBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                viewBtn.classList.add('hidden');
+            }
+        }
+
+        // タブ切り替え
+        function showTab(tabName) {
+            // 全てのタブコンテンツを非表示
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 全てのタブボタンのスタイルをリセット
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('border-blue-500', 'text-blue-600');
+                button.classList.add('text-gray-500');
+            });
+
+            // 選択されたタブを表示
+            const tabContent = document.getElementById(tabName + 'Tab');
+            const tabButton = document.querySelector(`[data-tab="${tabName}"]`);
+            
+            if (tabContent) {
+                tabContent.classList.remove('hidden');
+            }
+            if (tabButton) {
+                tabButton.classList.add('border-blue-500', 'text-blue-600');
+                tabButton.classList.remove('text-gray-500');
+            }
+
+            // タブに応じてコンテンツを更新
+            switch (tabName) {
+                case 'overview':
+                    updateOverview();
+                    break;
+                case 'teams':
+                    displayTeams();
+                    break;
+                case 'preliminary':
+                    displayPreliminaryLeagues();
+                    break;
+                case 'final':
+                    displayFinalTournament();
+                    break;
+                case 'b-grade':
+                    displayBGradeTournament();
+                    break;
+            }
+        }
+
+        // チーム管理
+        function showTeamForm() {
+            document.getElementById('teamForm').classList.remove('hidden');
+            document.getElementById('teamName').value = '';
+            document.getElementById('teamLeague').value = '';
+        }
+
+        function hideTeamForm() {
+            document.getElementById('teamForm').classList.add('hidden');
+        }
+
+        function saveTeam() {
+            const name = document.getElementById('teamName').value.trim();
+            const league = document.getElementById('teamLeague').value;
+            
+            if (!name || !league) {
+                alert('チーム名とリーグを入力してください');
+                return;
+            }
+
+            // 同じリーグのチーム数をチェック
+            const leagueTeams = teams.filter(team => team.league === league);
+            if (leagueTeams.length >= 5) {
+                alert(`${league}リーグは既に5チームです`);
+                return;
+            }
+
+            // チーム名の重複チェック
+            if (teams.some(team => team.name === name)) {
+                alert('同じチーム名が既に存在します');
+                return;
+            }
+
+            const newTeam = {
+                id: Date.now().toString(),
+                name: name,
+                league: league,
+                wins: 0,
+                losses: 0,
+                setsWon: 0,
+                setsLost: 0,
+                pointsWon: 0,
+                pointsLost: 0
+            };
+
+            teams.push(newTeam);
+            saveData();
+            hideTeamForm();
+            displayTeams();
+            updateOverview();
+        }
+
+        function deleteTeam(teamId) {
+            if (confirm('このチームを削除してもよろしいですか？関連する試合結果も削除されます。')) {
+                teams = teams.filter(team => team.id !== teamId);
+                matches = matches.filter(match => match.team1 !== teamId && match.team2 !== teamId);
+                saveData();
+                displayTeams();
+                updateOverview();
+            }
+        }
+
+        function displayTeams() {
+            const container = document.getElementById('teamsList');
+            const leagues = ['A', 'B', 'C', 'D', 'E'];
+            
+            container.innerHTML = '';
+            
+            leagues.forEach(league => {
+                const leagueTeams = teams.filter(team => team.league === league);
+                const leagueDiv = document.createElement('div');
+                leagueDiv.className = 'bg-gray-50 p-4 rounded-lg';
+                
+                leagueDiv.innerHTML = `
+                    <h3 class="font-bold mb-3 text-lg text-center">${league}リーグ (${leagueTeams.length}/5)</h3>
+                    <div class="space-y-2">
+                        ${leagueTeams.map(team => `
+                            <div class="flex justify-between items-center bg-white p-3 rounded border">
+                                <span class="font-medium">${team.name}</span>
+                                <button onclick="deleteTeam('${team.id}')" 
+                                        class="admin-only text-red-500 hover:text-red-700 ${isAdmin ? '' : 'hidden'}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(leagueDiv);
+            });
+        }
+
+        // 予選リーグの最適化されたスケジュール生成
+        function generateOptimizedSchedule() {
+            if (!confirm('試合順序を最適化しますか？既存の順序は上書きされます。')) {
+                return;
+            }
+
+            const leagues = ['A', 'B', 'C', 'D', 'E'];
+            
+            leagues.forEach(league => {
+                const leagueTeams = teams.filter(team => team.league === league);
+                if (leagueTeams.length !== 5) {
+                    alert(`${league}リーグのチーム数が5ではありません（現在${leagueTeams.length}チーム）`);
+                    return;
+                }
+
+                // 最適化されたスケジュールを生成
+                const optimizedSchedule = generateOptimalScheduleForLeague(leagueTeams);
+                
+                // 既存の試合を削除
+                matches = matches.filter(match => {
+                    const team1 = teams.find(t => t.id === match.team1);
+                    const team2 = teams.find(t => t.id === match.team2);
+                    return !(team1 && team2 && team1.league === league && team2.league === league);
+                });
+
+                // 新しい試合を追加
+                optimizedSchedule.forEach((matchData, index) => {
+                    const match = {
+                        id: `${league}-${Date.now()}-${index}`,
+                        team1: matchData.team1.id,
+                        team2: matchData.team2.id,
+                        league: league,
+                        order: index + 1,
+                        referee: matchData.referee.id,
+                        team1Score: null,
+                        team2Score: null,
+                        completed: false
+                    };
+                    matches.push(match);
+                });
+            });
+
+            saveData();
+            displayPreliminaryLeagues();
+            alert('試合順序を最適化しました！');
+        }
+
+        function generateOptimalScheduleForLeague(leagueTeams) {
+            const schedule = [];
+            const teamIds = leagueTeams.map(team => team.id);
+            const teamNames = leagueTeams.reduce((acc, team) => {
+                acc[team.id] = team;
+                return acc;
+            }, {});
+
+            // 5チーム総当たりの最適化されたスケジュール
+            // 連続試合を避け、審判も均等に割り当て
+            const matches = [
+                [0, 1, 2], // チーム1 vs チーム2, 審判: チーム3
+                [3, 4, 0], // チーム4 vs チーム5, 審判: チーム1
+                [1, 3, 4], // チーム2 vs チーム4, 審判: チーム5
+                [2, 4, 1], // チーム3 vs チーム5, 審判: チーム2
+                [0, 3, 2], // チーム1 vs チーム4, 審判: チーム3
+                [1, 4, 3], // チーム2 vs チーム5, 審判: チーム4
+                [2, 3, 0], // チーム3 vs チーム4, 審判: チーム1
+                [0, 4, 1], // チーム1 vs チーム5, 審判: チーム2
+                [1, 2, 4], // チーム2 vs チーム3, 審判: チーム5
+                [0, 2, 3]  // チーム1 vs チーム3, 審判: チーム4
+            ];
+
+            matches.forEach(([team1Idx, team2Idx, refereeIdx]) => {
+                schedule.push({
+                    team1: teamNames[teamIds[team1Idx]],
+                    team2: teamNames[teamIds[team2Idx]],
+                    referee: teamNames[teamIds[refereeIdx]]
+                });
+            });
+
+            return schedule;
+        }
+
+        function displayPreliminaryLeagues() {
+            const container = document.getElementById('preliminaryLeagues');
+            const leagues = ['A', 'B', 'C', 'D', 'E'];
+            
+            container.innerHTML = '';
+            
+            leagues.forEach(league => {
+                const leagueDiv = document.createElement('div');
+                leagueDiv.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
+                
+                const leagueTeams = teams.filter(team => team.league === league);
+                const leagueMatches = matches.filter(match => {
+                    const team1 = teams.find(t => t.id === match.team1);
+                    return team1 && team1.league === league;
+                }).sort((a, b) => (a.order || 0) - (b.order || 0));
+
+                // 順位表を計算
+                const standings = calculateStandings(leagueTeams, leagueMatches);
+                
+                leagueDiv.innerHTML = `
+                    <h3 class="text-xl font-bold mb-4 text-center bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded">
+                        ${league}リーグ
+                    </h3>
+                    
+                    <!-- 順位表 -->
+                    <div class="mb-6">
+                        <h4 class="font-bold mb-2">順位表</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="border p-2">順位</th>
+                                        <th class="border p-2">チーム名</th>
+                                        <th class="border p-2">勝敗</th>
+                                        <th class="border p-2">セット率</th>
+                                        <th class="border p-2">得点率</th>
+                                        <th class="border p-2">総得点</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${standings.map((team, index) => `
+                                        <tr class="${index < 3 ? 'bg-yellow-50 font-medium' : ''}">
+                                            <td class="border p-2 text-center">${index + 1}</td>
+                                            <td class="border p-2">${team.name}</td>
+                                            <td class="border p-2 text-center">${team.wins}-${team.losses}</td>
+                                            <td class="border p-2 text-center">${team.setRatio}</td>
+                                            <td class="border p-2 text-center">${team.pointRatio}</td>
+                                            <td class="border p-2 text-center">${team.pointsWon}-${team.pointsLost}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 対戦表 -->
+                    <div>
+                        <h4 class="font-bold mb-2">対戦表</h4>
+                        <div class="space-y-2">
+                            ${leagueMatches.map((match, index) => {
+                                const team1 = teams.find(t => t.id === match.team1);
+                                const team2 = teams.find(t => t.id === match.team2);
+                                const referee = teams.find(t => t.id === match.referee);
+                                
+                                return `
+                                    <div class="border rounded-lg p-3 ${match.completed ? 'bg-green-50' : 'bg-gray-50'} cursor-pointer hover:bg-gray-100"
+                                         onclick="${isAdmin ? `editMatch('${match.id}')` : ''}">
+                                        <div class="flex flex-col md:flex-row justify-between items-center">
+                                            <div class="flex items-center space-x-4 mb-2 md:mb-0">
+                                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                                    第${index + 1}試合
+                                                </span>
+                                                <div class="text-center">
+                                                    <div class="font-medium">${team1?.name || 'チーム1'}</div>
+                                                    <div class="text-xs text-gray-500">vs</div>
+                                                    <div class="font-medium">${team2?.name || 'チーム2'}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="flex items-center space-x-4">
+                                                ${match.completed ? `
+                                                    <div class="text-center font-bold text-lg">
+                                                        ${match.team1Score} - ${match.team2Score}
+                                                    </div>
+                                                ` : `
+                                                    <div class="text-gray-400 text-sm">未実施</div>
+                                                `}
+                                                
+                                                <div class="referee-indicator text-center px-3 py-1 rounded text-xs font-medium text-white">
+                                                    <div>審判</div>
+                                                    <div>${referee?.name || '未定'}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(leagueDiv);
+            });
+        }
+
+        function calculateStandings(leagueTeams, leagueMatches) {
+            const standings = leagueTeams.map(team => ({
+                ...team,
+                wins: 0,
+                losses: 0,
+                setsWon: 0,
+                setsLost: 0,
+                pointsWon: 0,
+                pointsLost: 0,
+                setRatio: '0.000',
+                pointRatio: '0.000'
+            }));
+
+            leagueMatches.forEach(match => {
+                if (match.completed) {
+                    const team1Stats = standings.find(s => s.id === match.team1);
+                    const team2Stats = standings.find(s => s.id === match.team2);
+                    
+                    if (team1Stats && team2Stats) {
+                        team1Stats.pointsWon += match.team1Score;
+                        team1Stats.pointsLost += match.team2Score;
+                        team2Stats.pointsWon += match.team2Score;
+                        team2Stats.pointsLost += match.team1Score;
+
+                        if (match.team1Score > match.team2Score) {
+                            team1Stats.wins++;
+                            team1Stats.setsWon++;
+                            team2Stats.losses++;
+                            team2Stats.setsLost++;
+                        } else {
+                            team2Stats.wins++;
+                            team2Stats.setsWon++;
+                            team1Stats.losses++;
+                            team1Stats.setsLost++;
+                        }
+                    }
+                }
+            });
+
+            // セット率・得点率を計算
+            standings.forEach(team => {
+                const totalSets = team.setsWon + team.setsLost;
+                const totalPoints = team.pointsWon + team.pointsLost;
+                
+                team.setRatio = totalSets > 0 ? (team.setsWon / totalSets).toFixed(3) : '0.000';
+                team.pointRatio = totalPoints > 0 ? (team.pointsWon / totalPoints).toFixed(3) : '0.000';
+            });
+
+            // 順位ソート（セット率→得点率）
+            standings.sort((a, b) => {
+                if (parseFloat(b.setRatio) !== parseFloat(a.setRatio)) {
+                    return parseFloat(b.setRatio) - parseFloat(a.setRatio);
+                }
+                return parseFloat(b.pointRatio) - parseFloat(a.pointRatio);
+            });
+
+            return standings;
+        }
+
+        // 試合結果編集
+        function editMatch(matchId) {
+            if (!isAdmin) return;
+            
+            const match = matches.find(m => m.id === matchId);
+            if (!match) return;
+            
+            currentEditingMatch = match;
+            
+            const team1 = teams.find(t => t.id === match.team1);
+            const team2 = teams.find(t => t.id === match.team2);
+            
+            document.getElementById('team1Name').textContent = team1?.name || 'チーム1';
+            document.getElementById('team2Name').textContent = team2?.name || 'チーム2';
+            document.getElementById('team1Label').textContent = team1?.name || 'チーム1';
+            document.getElementById('team2Label').textContent = team2?.name || 'チーム2';
+            
+            document.getElementById('team1Score').value = match.team1Score || '';
+            document.getElementById('team2Score').value = match.team2Score || '';
+            
+            document.getElementById('matchResultModal').classList.remove('hidden');
+        }
+
+        function hideMatchModal() {
+            document.getElementById('matchResultModal').classList.add('hidden');
+            currentEditingMatch = null;
+        }
+
+        function saveMatchResult() {
+            if (!currentEditingMatch) return;
+            
+            const team1Score = parseInt(document.getElementById('team1Score').value) || 0;
+            const team2Score = parseInt(document.getElementById('team2Score').value) || 0;
+            
+            if (team1Score < 0 || team2Score < 0) {
+                alert('スコアは0以上で入力してください');
+                return;
+            }
+            
+            // 21点先取の勝利条件チェック（デュースあり）
+            const minWinScore = 21;
+            const minScoreDiff = 2;
+            
+            if (team1Score >= minWinScore || team2Score >= minWinScore) {
+                if (Math.abs(team1Score - team2Score) < minScoreDiff) {
+                    if (!confirm('デュースルールに従い、2点差がついていませんが、この結果で保存しますか？')) {
+                        return;
+                    }
+                }
+            }
+            
+            currentEditingMatch.team1Score = team1Score;
+            currentEditingMatch.team2Score = team2Score;
+            currentEditingMatch.completed = true;
+            
+            saveData();
+            hideMatchModal();
+            displayPreliminaryLeagues();
+        }
+
+        function deleteMatchResult() {
+            if (!currentEditingMatch || !confirm('この試合結果を削除しますか？')) return;
+            
+            currentEditingMatch.team1Score = null;
+            currentEditingMatch.team2Score = null;
+            currentEditingMatch.completed = false;
+            
+            saveData();
+            hideMatchModal();
+            displayPreliminaryLeagues();
+        }
+
+        function resetAllMatches() {
+            if (!confirm('全ての試合結果をリセットしますか？この操作は元に戻せません。')) {
+                return;
+            }
+            
+            matches.forEach(match => {
+                match.team1Score = null;
+                match.team2Score = null;
+                match.completed = false;
+            });
+            
+            saveData();
+            displayPreliminaryLeagues();
+            alert('全ての試合結果をリセットしました');
+        }
+
+        // トーナメント管理
+        function setupTournament(type) {
+            const title = type === 'final' ? '決勝トーナメント抽選結果入力' : 'B級トーナメント抽選結果入力';
+            document.getElementById('tournamentSetupTitle').textContent = title;
+            
+            const availableTeams = getAvailableTeamsForTournament(type);
+            const expectedCount = type === 'final' ? 16 : 9;
+            
+            if (availableTeams.length < expectedCount) {
+                alert(`${type === 'final' ? '決勝' : 'B級'}トーナメントに必要なチーム数が不足しています。\n必要: ${expectedCount}チーム\n利用可能: ${availableTeams.length}チーム`);
+                return;
+            }
+            
+            const content = document.getElementById('tournamentSetupContent');
+            const positions = type === 'final' ? 16 : 9;
+            
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <p class="text-sm text-gray-600">抽選結果に従って、各位置にチームを配置してください。</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${Array.from({length: positions}, (_, i) => `
+                            <div class="flex items-center space-x-2">
+                                <label class="w-16 text-sm font-medium">位置${i + 1}:</label>
+                                <select class="tournament-position flex-1 border border-gray-300 rounded px-2 py-1" data-position="${i}">
+                                    <option value="">チーム選択</option>
+                                    ${availableTeams.map(team => `
+                                        <option value="${team.id}">${team.name}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('tournamentSetupModal').classList.remove('hidden');
+            document.getElementById('tournamentSetupModal').dataset.type = type;
+        }
+
+        function getAvailableTeamsForTournament(type) {
+            // 予選リーグの順位を計算
+            const leagues = ['A', 'B', 'C', 'D', 'E'];
+            const qualifiedTeams = [];
+            const fourthPlaceTeams = [];
+            
+            leagues.forEach(league => {
+                const leagueTeams = teams.filter(team => team.league === league);
+                const leagueMatches = matches.filter(match => {
+                    const team1 = teams.find(t => t.id === match.team1);
+                    return team1 && team1.league === league;
+                });
+                
+                const standings = calculateStandings(leagueTeams, leagueMatches);
+                
+                // 上位3チームは決勝進出
+                qualifiedTeams.push(...standings.slice(0, 3));
+                
+                // 4位チームは候補
+                if (standings[3]) {
+                    fourthPlaceTeams.push(standings[3]);
+                }
+            });
+            
+            if (type === 'final') {
+                // 決勝トーナメント: 上位3チーム×5 + 4位最上位1チーム = 16チーム
+                fourthPlaceTeams.sort((a, b) => {
+                    if (parseFloat(b.setRatio) !== parseFloat(a.setRatio)) {
+                        return parseFloat(b.setRatio) - parseFloat(a.setRatio);
+                    }
+                    return parseFloat(b.pointRatio) - parseFloat(a.pointRatio);
+                });
+                
+                return [...qualifiedTeams, fourthPlaceTeams[0]].filter(Boolean);
+            } else {
+                // B級トーナメント: 残りのチーム（4位の残り4チーム + 5位5チーム）
+                const remainingFourth = fourthPlaceTeams.slice(1);
+                const fifthPlaceTeams = [];
+                
+                leagues.forEach(league => {
+                    const leagueTeams = teams.filter(team => team.league === league);
+                    const leagueMatches = matches.filter(match => {
+                        const team1 = teams.find(t => t.id === match.team1);
+                        return team1 && team1.league === league;
+                    });
+                    
+                    const standings = calculateStandings(leagueTeams, leagueMatches);
+                    if (standings[4]) {
+                        fifthPlaceTeams.push(standings[4]);
+                    }
+                });
+                
+                return [...remainingFourth, ...fifthPlaceTeams].filter(Boolean);
+            }
+        }
+
+        function manageTournamentOrder(type) {
+            const tournamentData = tournaments[type];
+            if (!tournamentData || tournamentData.length === 0) {
+                alert('先に抽選結果を入力してください');
+                return;
+            }
+            
+            const title = `${type === 'final' ? '決勝' : 'B級'}トーナメント 試合順序管理`;
+            document.getElementById('tournamentSetupTitle').textContent = title;
+            
+            const content = document.getElementById('tournamentSetupContent');
+            const matchCount = type === 'final' ? 15 : 8; // 16チーム→15試合, 9チーム→8試合
+            
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <p class="text-sm text-gray-600">各試合の実施順序を設定してください。</p>
+                    <div class="space-y-2">
+                        ${Array.from({length: matchCount}, (_, i) => `
+                            <div class="flex items-center space-x-2">
+                                <label class="w-16 text-sm font-medium">第${i + 1}試合:</label>
+                                <input type="number" min="1" max="${matchCount}" 
+                                       class="match-order w-20 border border-gray-300 rounded px-2 py-1" 
+                                       data-match="${i}" value="${i + 1}">
+                                <span class="text-sm text-gray-500">（試合${i + 1}の実施順序）</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('tournamentSetupModal').classList.remove('hidden');
+            document.getElementById('tournamentSetupModal').dataset.type = type;
+            document.getElementById('tournamentSetupModal').dataset.mode = 'order';
+        }
+
+        function hideTournamentSetupModal() {
+            document.getElementById('tournamentSetupModal').classList.add('hidden');
+        }
+
+        function saveTournamentSetup() {
+            const modal = document.getElementById('tournamentSetupModal');
+            const type = modal.dataset.type;
+            const mode = modal.dataset.mode;
+            
+            if (mode === 'order') {
+                // 試合順序の保存
+                const orders = [];
+                document.querySelectorAll('.match-order').forEach(input => {
+                    orders.push(parseInt(input.value) || 1);
+                });
+                
+                tournaments[type].forEach((match, index) => {
+                    if (match) {
+                        match.order = orders[index];
+                    }
+                });
+                
+            } else {
+                // 抽選結果の保存
+                const selectedTeams = [];
+                const selects = document.querySelectorAll('.tournament-position');
+                
+                selects.forEach(select => {
+                    const teamId = select.value;
+                    if (teamId) {
+                        if (selectedTeams.includes(teamId)) {
+                            alert('同じチームが複数選択されています');
+                            return;
+                        }
+                        selectedTeams.push(teamId);
+                    }
+                });
+                
+                const expectedCount = type === 'final' ? 16 : 9;
+                if (selectedTeams.length !== expectedCount) {
+                    alert(`全ての位置にチームを配置してください（${selectedTeams.length}/${expectedCount}）`);
+                    return;
+                }
+                
+                // トーナメント表を生成
+                tournaments[type] = generateTournamentBracket(selectedTeams, type);
+            }
+            
+            saveData();
+            hideTournamentSetupModal();
+            
+            if (type === 'final') {
+                displayFinalTournament();
+            } else {
+                displayBGradeTournament();
+            }
+        }
+
+        function generateTournamentBracket(teamIds, type) {
+            const bracket = [];
+            
+            if (type === 'final') {
+                // 16チームトーナメント（15試合）
+                for (let i = 0; i < 15; i++) {
+                    const match = {
+                        id: `${type}-match-${i}`,
+                        round: i < 8 ? 1 : (i < 12 ? 2 : (i < 14 ? 3 : 4)),
+                        matchNumber: i + 1,
+                        team1: null,
+                        team2: null,
+                        team1Score: null,
+                        team2Score: null,
+                        completed: false,
+                        order: i + 1
+                    };
+                    
+                    // 1回戦（0-7）
+                    if (i < 8) {
+                        match.team1 = teamIds[i * 2];
+                        match.team2 = teamIds[i * 2 + 1];
+                    }
+                    
+                    bracket.push(match);
+                }
+            } else {
+                // 9チームトーナメント（8試合）
+                for (let i = 0; i < 8; i++) {
+                    const match = {
+                        id: `${type}-match-${i}`,
+                        round: i < 4 ? 1 : (i < 6 ? 2 : (i < 7 ? 3 : 4)),
+                        matchNumber: i + 1,
+                        team1: null,
+                        team2: null,
+                        team1Score: null,
+                        team2Score: null,
+                        completed: false,
+                        order: i + 1
+                    };
+                    
+                    // 1回戦（0-3, 1チームはシード）
+                    if (i < 4) {
+                        match.team1 = teamIds[i * 2];
+                        match.team2 = teamIds[i * 2 + 1];
+                    }
+                    
+                    bracket.push(match);
+                }
+            }
+            
+            return bracket;
+        }
+
+        function displayFinalTournament() {
+            const container = document.getElementById('finalTournamentBracket');
+            
+            if (!tournaments.final || tournaments.final.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-trophy text-4xl mb-4"></i>
+                        <p>抽選結果を入力してください</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // トーナメント表を描画
+            container.innerHTML = generateTournamentHTML(tournaments.final, 'final');
+        }
+
+        function displayBGradeTournament() {
+            const container = document.getElementById('bGradeTournamentBracket');
+            
+            if (!tournaments.bGrade || tournaments.bGrade.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-medal text-4xl mb-4"></i>
+                        <p>抽選結果を入力してください</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // トーナメント表を描画
+            container.innerHTML = generateTournamentHTML(tournaments.bGrade, 'bGrade');
+        }
+
+        function generateTournamentHTML(bracket, type) {
+            const sortedMatches = bracket.sort((a, b) => (a.order || 0) - (b.order || 0));
+            
+            return `
+                <div class="space-y-6">
+                    ${[1, 2, 3, 4].map(round => {
+                        const roundMatches = sortedMatches.filter(match => match.round === round);
+                        if (roundMatches.length === 0) return '';
+                        
+                        const roundName = ['1回戦', '準々決勝', '準決勝', '決勝'][round - 1];
+                        
+                        return `
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-lg mb-4 text-center">${roundName}</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    ${roundMatches.map(match => {
+                                        const team1 = match.team1 ? teams.find(t => t.id === match.team1) : null;
+                                        const team2 = match.team2 ? teams.find(t => t.id === match.team2) : null;
+                                        
+                                        return `
+                                            <div class="match-cell p-3 rounded bg-white cursor-pointer hover:bg-gray-100 ${match.completed ? 'border-green-400' : 'border-gray-300'}"
+                                                 onclick="${isAdmin ? `editTournamentMatch('${type}', '${match.id}')` : ''}">
+                                                <div class="text-xs text-gray-500 mb-2">第${match.order}試合</div>
+                                                <div class="space-y-2">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="font-medium text-sm">${team1?.name || 'TBD'}</span>
+                                                        <span class="text-lg font-bold">${match.completed ? match.team1Score : '-'}</span>
+                                                    </div>
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="font-medium text-sm">${team2?.name || 'TBD'}</span>
+                                                        <span class="text-lg font-bold">${match.completed ? match.team2Score : '-'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function editTournamentMatch(type, matchId) {
+            if (!isAdmin) return;
+            
+            const match = tournaments[type].find(m => m.id === matchId);
+            if (!match) return;
+            
+            currentEditingMatch = match;
+            
+            const team1 = match.team1 ? teams.find(t => t.id === match.team1) : null;
+            const team2 = match.team2 ? teams.find(t => t.id === match.team2) : null;
+            
+            if (!team1 || !team2) {
+                alert('対戦チームが確定していません');
+                return;
+            }
+            
+            document.getElementById('team1Name').textContent = team1.name;
+            document.getElementById('team2Name').textContent = team2.name;
+            document.getElementById('team1Label').textContent = team1.name;
+            document.getElementById('team2Label').textContent = team2.name;
+            
+            document.getElementById('team1Score').value = match.team1Score || '';
+            document.getElementById('team2Score').value = match.team2Score || '';
+            
+            document.getElementById('matchResultModal').classList.remove('hidden');
+            document.getElementById('matchResultModal').dataset.tournamentType = type;
+        }
+
+        // UI更新
+        function updateOverview() {
+            document.getElementById('totalTeams').textContent = teams.length;
+        }
+
+        function updateUI() {
+            updateOverview();
+            setAdminMode(false);
+        }
+
+        // ページ読み込み時の初期化処理を修正
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            initializeEventListeners();
+            updateUI();
+            showTab('overview');
+            
+            // 試合結果保存のイベントハンドラを修正
+            document.getElementById('saveMatch').onclick = function() {
+                const modal = document.getElementById('matchResultModal');
+                const tournamentType = modal.dataset.tournamentType;
+                
+                if (tournamentType) {
+                    saveTournamentMatchResult(tournamentType);
+                } else {
+                    saveMatchResult();
+                }
+            };
+            
+            document.getElementById('deleteMatch').onclick = function() {
+                const modal = document.getElementById('matchResultModal');
+                const tournamentType = modal.dataset.tournamentType;
+                
+                if (tournamentType) {
+                    deleteTournamentMatchResult(tournamentType);
+                } else {
+                    deleteMatchResult();
+                }
+            };
+        });
+
+        function saveTournamentMatchResult(type) {
+            if (!currentEditingMatch) return;
+            
+            const team1Score = parseInt(document.getElementById('team1Score').value) || 0;
+            const team2Score = parseInt(document.getElementById('team2Score').value) || 0;
+            
+            if (team1Score < 0 || team2Score < 0) {
+                alert('スコアは0以上で入力してください');
+                return;
+            }
+            
+            if (team1Score === team2Score) {
+                alert('トーナメントでは引き分けはありません');
+                return;
+            }
+            
+            currentEditingMatch.team1Score = team1Score;
+            currentEditingMatch.team2Score = team2Score;
+            currentEditingMatch.completed = true;
+            
+            // 次の試合に勝者を進める
+            advanceWinnerToNextRound(type, currentEditingMatch);
+            
+            saveData();
+            hideMatchModal();
+            
+            if (type === 'final') {
+                displayFinalTournament();
+            } else {
+                displayBGradeTournament();
+            }
+        }
+
+        function deleteTournamentMatchResult(type) {
+            if (!currentEditingMatch || !confirm('この試合結果を削除しますか？')) return;
+            
+            currentEditingMatch.team1Score = null;
+            currentEditingMatch.team2Score = null;
+            currentEditingMatch.completed = false;
+            
+            // 次の試合から勝者を削除
+            removeWinnerFromNextRound(type, currentEditingMatch);
+            
+            saveData();
+            hideMatchModal();
+            
+            if (type === 'final') {
+                displayFinalTournament();
+            } else {
+                displayBGradeTournament();
+            }
+        }
+
+        function advanceWinnerToNextRound(type, match) {
+            const winner = match.team1Score > match.team2Score ? match.team1 : match.team2;
+            const bracket = tournaments[type];
+            
+            // 次の試合を特定して勝者を設定
+            const nextRound = match.round + 1;
+            const nextMatchIndex = Math.floor((match.matchNumber - 1) / 2);
+            
+            const nextMatch = bracket.find(m => m.round === nextRound && Math.floor((m.matchNumber - 1) / 2) === Math.floor(nextMatchIndex / 2));
+            
+            if (nextMatch) {
+                if ((match.matchNumber - 1) % 2 === 0) {
+                    nextMatch.team1 = winner;
+                } else {
+                    nextMatch.team2 = winner;
+                }
+            }
+        }
+
+        function removeWinnerFromNextRound(type, match) {
+            const bracket = tournaments[type];
+            
+            // 次の試合を特定して勝者を削除
+            const nextRound = match.round + 1;
+            const nextMatchIndex = Math.floor((match.matchNumber - 1) / 2);
+            
+            const nextMatch = bracket.find(m => m.round === nextRound && Math.floor((m.matchNumber - 1) / 2) === Math.floor(nextMatchIndex / 2));
+            
+            if (nextMatch) {
+                if ((match.matchNumber - 1) % 2 === 0) {
+                    nextMatch.team1 = null;
+                } else {
+                    nextMatch.team2 = null;
+                }
+                
+                // 次の試合の結果もクリア
+                nextMatch.team1Score = null;
+                nextMatch.team2Score = null;
+                nextMatch.completed = false;
+                
+                // さらに次の試合からも削除（再帰的に）
+                if (nextMatch.completed) {
+                    removeWinnerFromNextRound(type, nextMatch);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+    <script id="html_badge_script1">
+        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDrW9FITa2v5ABaog%2FY5VzqQjaPOn3I%2F5zrOI6KXi3nqE2PDhryfwCwXEAasif%2BUhTU29%2FBu%2BFAIc%2FgzPxYPQqtYfUMeMBFVhQjryBX3BokTWQLI%2FwBZO8cInRu%2FS%2FNwoaCzr6SmHdKZ%2BX9ElQQziUIRcYZenBNgs%2B9CEfXOR7w%2BlzJdbb2%2Fjay8XUugCQB9IqA2Tb6S59dOovWtIkT8mGAbr%2BxOHYhKFFAMAOhKaP6D3VT1YfmlI1pbTrht7MsaPMhckHebbDrBYJ%2Bu3FaU8exyBg5RO5XnotnoBGnvt7TQi7ka%2F1tQ9lugt8L9vB%2FZHrhslHAYUQIHpNSwifYd9ZkCShCIx6C3%2FLffH3UGEcOSOl8PLWKSMonapA2O%2FmKumwMbGa3zeefbfpf5FMDsHI5yFcXKXZUu5%2FWQ7aNXEoAv%2BCgZCG%2Bi%2BOPeNECjmuqzWR6ogxOmTSTcUqFZ6coOdgxpqwzvi0aVlE7VX3TzrX0D9JaHfJSkObpqRs8qq5TDeqfaKRFeOEibVUnIev4kgp5E%3D";
+        window.__genspark_locale = "ja-JP";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDrW9FITa2v5ABaog/Y5VzqQjaPOn3I/5zrOI6KXi3nqE2PDhryfwCwXEAasif+UhTU29/Bu+FAIc/gzPxYPQqtYfUMeMBFVhQjryBX3BokTWQLI/wBZO8cInRu/S/NwoaCzr6SmHdKZ+X9ElQQziUIRcYZenBNgs+9CEfXOR7w+lzJdbb2/jay8XUugCQB9IqA2Tb6S59dOovWtIkT8mGAbr+xOHYhKFFAMAOhKaP6D3VT1YfmlI1pbTrht7MsaPMhckHebbDrBYJ+u3FaU8exyBg5RO5XnotnoBGnvt7TQi7ka/1tQ9lugt8L9vB/ZHrhslHAYUQIHpNSwifYd9ZkCShCIx6C3/LffH3UGEcOSOl8PLWKSMonapA2O/mKumwMbGa3zeefbfpf5FMDsHI5yFcXKXZUu5/WQ7aNXEoAv+CgZCG+i+OPeNECjmuqzWR6ogxOmTSTcUqFZ6coOdgxpqwzvi0aVlE7VX3TzrX0D9JaHfJSkObpqRs8qq5TDeqfaKRFeOEibVUnIev4kgp5E=";
+    </script>
+    
+        <script id="html_badge_script2" src="https://www.genspark.ai/html_badge.js"></script>
+        
+    <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
+    
